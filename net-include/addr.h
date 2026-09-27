@@ -17,6 +17,7 @@
 #include <cassert>
 
 namespace ne{
+    //仍需要扩展
     class addr{
         private:
             sa_family_t fa_;
@@ -25,10 +26,23 @@ namespace ne{
             in_port_t port_;
         public:
             const std::string& get_ip()const noexcept;
+
             in_port_t get_ports()const noexcept;
+
             sa_family_t get_fa_()const noexcept;
+
             int get_po_()const noexcept;
+
             bool get_sockaddr(sockaddr** ad, socklen_t* len)const noexcept;
+
+            void set_socktype(int socktype);
+
+            void set_sa_family(sa_family_t fa);
+
+            bool set_ip(const std::string& ip);
+
+            void set_port_num(in_port_t port);
+            
             //待扩展，转化域名->ipv4,ipv6,udp,tcp,返回sockaddr
             //bool get_sockaddrs_ipv4_tcp(std::vector<std::pair<socklen_t, sockaddr>>& addrs)const;
             //bool get_sockaddr_ipv4_tcp(sockaddr& ad, socklen_t& len)const;

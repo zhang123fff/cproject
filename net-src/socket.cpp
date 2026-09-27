@@ -3,14 +3,14 @@
 
 namespace ne{
 
-    socket::socket(sa_family_t fa, in_port_t po){
+    socket::socket(sa_family_t fa, int po){
         fd = ::socket(fa, po, 0);
-        if(fd == -1)throw std::runtime_error(std::string("socket获取失败,errno : ") + strerror(errno));
+        //if(fd == -1)throw std::runtime_error(std::string("socket获取失败,errno : ") + strerror(errno));
     }
     
     socket::socket(const addr& ad){
         fd = ::socket(ad.get_fa_(), ad.get_po_(), 0);
-        if(fd == -1)throw std::runtime_error(std::string("socket获取失败,errno : ") + strerror(errno));
+        //if(fd == -1)throw std::runtime_error(std::string("socket获取失败,errno : ") + strerror(errno));
     }
 
     socket::~socket(){
@@ -30,35 +30,73 @@ namespace ne{
         return *this;
     }
     //注意fd只能暴露给某些类型，谨慎使用
-    int socket::get_fd(){
+    int socket::get_fd()const noexcept{
         return fd;
     }
 
     int socket::bind(const addr& ad)noexcept{
-        if(fd == -1) return -1;
-        sockaddr tmp;
-        if(!ad.get_sockaddr(tmp)) return -1;
-        int res = ::bind(fd, &tmp, sizeof(sockaddr));
+        if(!is_valid()) return -1;
+        sockaddr* tmp = nullptr;
+        socklen_t len = 0;
+
+        if(!ad.get_sockaddr(&tmp, &len)) return -1;
+        int res = ::bind(fd, tmp, len);
+        free(tmp);
         return res;
     }
 
     int socket::connect(const addr& ad)noexcept{
-        if(fd == -1) return -1;
-        sockaddr tmp;
-        if(!ad.get_sockaddr(tmp)) return -1;
-        int res = ::connect(fd, &tmp, sizeof(sockaddr));
+        if(!is_valid()) return -1;
+        sockaddr* tmp = nullptr;
+        socklen_t len = 0;
+        if(!ad.get_sockaddr(&tmp, &len)) return -1;
+        int res = ::connect(fd, tmp, len);
+        free(tmp);
         return res;
     }
+    //
+    //返回值代表实际发送，为meg的长度
+    //可能会失败
+    ssize_t socket::send_all(const std::string& meg)noexcept{
+        if(!is_valid()) return -1;
+        ssize_t res = 0;
+        ssize_t flag = 1;
+        while(res != meg.size()){
+            
+            flag = ::send(fd, (void*)meg.c_str() + res, meg.size() - res, MSG_NOSIGNAL);
+            if(flag <= 0){
+                //补上错误输出
+                return res;
+            }
+            res += flag;
 
-    int socket::send(const std::string& meg)noexcept{
-        int res = ::send(fd, (void*)meg.c_str(), meg.size(), 0);
+            
+        }
         return res;
     }
-
-    int socket::recv(std::string& meg, int num){
-        if(fd == -1) return -1;
+    //
+    //可能会失败
+    ssize_t socket::recv_all(std::string& meg, ssize_t num){
+        if(!is_valid() || num == 0) return -1;
+        try{
         meg.resize(num);
-        int res = ::recv(fd, (void*)meg.data(), num, 0);
+        }
+        catch(std::exception& ex){
+            //补上错误输出
+            return -1;
+        }
+        ssize_t res = 0;
+        ssize_t flag = 1;
+        while(res != num){
+            flag = ::recv(fd, (void*)meg.data() + res, num - res, 0);
+            if(flag <= 0){
+                //要区分-1，0还有errno
+                //补上错误输出
+                return res;
+            }
+            res += flag;
+        }
+       
         
         return res;
     }
@@ -85,10 +123,29 @@ namespace ne{
         return flag; 
     }
 
+    int socket::create_socket(sa_family_t fa, int po){
+        if(!is_valid()){
+            fd = ::socket(fa, po, 0);
+        }
+        return fd;
+    }
 
+    ssize_t socket::send(const void *__buf, size_t __n, int __flags){
+        return ::send(fd, __buf,  __n,  __flags);
+    }
 
+    ssize_t socket::recv(void *__buf, size_t __n, int __flags){
+        return ::recv(fd, __buf,  __n,  __flags);
+    }
 
+    int socket::close(){
+        int res = ::close(fd);
+        fd = -1;
+        return res;
+    }
 
-
+    bool socket::is_valid()const{
+        return fd != -1;
+    }
 
 }

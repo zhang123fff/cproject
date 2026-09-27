@@ -109,7 +109,29 @@ namespace ne{
 
     }
 
+    void addr::set_socktype(int socktype){
+        po_ = socktype;
+    }
 
+    void addr::set_sa_family(sa_family_t fa){
+        fa_ = fa;
+    }
+
+    bool addr::set_ip(const std::string& ip){
+        try{
+            ip_ = ip;
+        }
+        catch(std::exception& ex){
+            //补上错误输出
+            return false;
+        }
+        return true;
+        
+    }
+
+    void addr::set_port_num(in_port_t port){
+        port_ = port;
+    }
 
 
 

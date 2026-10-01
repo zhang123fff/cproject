@@ -50,10 +50,15 @@ namespace ne{
 
         public:
             addr(const std::string& ip, in_port_t port, sa_family_t fa, int po);
+
             addr(const addr& others);
+
             addr(addr&& others)noexcept;
+
             addr& operator=(const addr& others);
+
             addr& operator=(addr&& others)noexcept;
+            
             ~addr();
 
 

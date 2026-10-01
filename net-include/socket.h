@@ -45,6 +45,7 @@ namespace ne{
         bool is_valid()const;
 
         int create_socket(sa_family_t fa, int po);
+        
     public:
 
         socket(sa_family_t fa, int po);

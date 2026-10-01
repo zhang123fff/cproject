@@ -12,30 +12,59 @@
 #include<memory>
 #include<functional>
 #include<map>
-#include"channel.h"
+
 #include"epoll.h"
 #include<atomic>
+
+
 namespace ne{
+    class channel;
 
     class eventloop{
+        static constexpr size_t DEFUALT_WAIT_SIZE = 10; 
+        //默认毫秒
+        static constexpr int DEFUALT_WAIT_TIME = 100;
         private:
-            std::atomic<bool> looping;
-            int epfd;
-            std::unordered_map<int, channel*> ca;
+            size_t epoll_wait_size = DEFUALT_WAIT_SIZE;
+            int epoll_wait_time = DEFUALT_WAIT_TIME;
+            std::atomic<bool> looping = false;
+            epoll ep;
+            std::map<int, channel*> map;
         public:
-            void loop();
-            void remove_channel(const channel* ptr);
+            bool loop();
+
+            int remove_channel(int fd);
+
+            int add_channel(int fd, channel* ptr);
             
-            void update_channel(const channel* ptr);
+            int update_channel(int fd, channel* ptr);
+
             void quit();
+
+            void set_looping(bool flag);
+
             bool get_looping()const noexcept;
+            
+            void set_epoll_wait_size(size_t siz);
+
+            size_t get_epoll_wait_size()const;
+
+            void set_epoll_wait_time(int time);
+
+            int get_epoll_wait_time()const;
         public:
-            eventloop(const epoll& ep)noexcept;
-            eventloop(int fd);
+            eventloop(epoll&& ep);
+
+            eventloop();
+
             ~eventloop();
+
             eventloop(const eventloop&) = delete;
+
             eventloop& operator=(const eventloop&) = delete;
+
             eventloop(eventloop&& others)noexcept = delete;
+
             eventloop& operator=(eventloop&& others)noexcept = delete;
 
 

@@ -20,17 +20,28 @@ namespace ne{
             int epfd;
         public:
             int epoll_wait(epoll_event* ptr, int maxsize, int timeout)noexcept;
+
             int epoll_ctl(int op, int fd, epoll_event* ptr)noexcept;
+
             int fd()const noexcept;
+
             bool is_valid()const noexcept;
+
             int close();
+
             int epoll_create();
+
         public:
             epoll();
+
             epoll(const epoll& others) = delete;
+
             epoll(epoll&& others)noexcept;
+
             epoll& operator=(const epoll& others) = delete;
+
             epoll& operator=(epoll&& others)noexcept;
+            
             ~epoll();
 
 

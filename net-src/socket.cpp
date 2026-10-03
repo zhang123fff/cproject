@@ -148,4 +148,9 @@ namespace ne{
         return fd != -1;
     }
 
+    int socket::get_socket_error(int& res){
+        socklen_t len = sizeof(res);
+        return getsockopt(fd, SOL_SOCKET, SO_ERROR, &res, &len);
+    }
+
 }

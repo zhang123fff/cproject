@@ -3,14 +3,14 @@
 
 namespace ne{
 
-    channel::channel(int fd) : fd_(fd){
-
-}
+    channel::channel(int fd){
+        fd_ = fd;
+    }
 
     channel::channel(){
 
 
-}
+    }
     /*    移动操作已废弃  //注意这里要把epoll当中的channel指针也要改了，不然指向错误channel，这点暂时未改正
 channel::channel(channel&& others)noexcept : fd_(others.fd_), events_(others.events_),
                                 revents_(others.revents_), back(others.back),
@@ -50,8 +50,10 @@ channel& channel::operator=(channel&& others)noexcept{
 */
     //待补全
     channel::~channel(){
-
-}
+        if(loop){
+            detach_from_eventloop();
+        }
+    }
 
     void channel::handling(){
     
@@ -211,6 +213,30 @@ channel& channel::operator=(channel&& others)noexcept{
         }
 
         return  0;
+    }
+    
+    int channel::add_to_eventloop(eventloop* lo){
+        if(loop || !lo) return -1;
+        int res = lo->add_channel(fd_, this);
+        if(res == 0)set_loop(lo);
+        return res;
+
+    }
+    
+    //失败返回 -1
+    //成功返回0
+    int channel::detach_from_eventloop(){
+        if(!loop) return 0;
+        int res = loop->remove_channel(fd_);
+        if(res == 0) loop = nullptr;
+        return res;
+    }
+    
+    //从eventloop移除，且fd置-1
+    int channel::detach_from_eventloop_and_discard_this_channel(){
+        int res = detach_from_eventloop();
+        if(res == 0) set_fd(-1);
+        return res;
     }
     //
     /*

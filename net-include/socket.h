@@ -46,6 +46,7 @@ namespace ne{
 
         int create_socket(sa_family_t fa, int po);
         
+        int get_socket_error(int& res);
     public:
 
         socket(sa_family_t fa, int po);

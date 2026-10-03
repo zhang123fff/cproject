@@ -35,7 +35,17 @@ namespace ne{
 
             int event_disable(uint32_t ev);
          
+            void set_fd(int fd);
+
+            void set_loop(eventloop* ptr);
         public:
+
+            int add_to_eventloop(eventloop* lo);
+            
+            int detach_from_eventloop_and_discard_this_channel();
+
+            int detach_from_eventloop();
+
             uint32_t get_events()const;
 
             uint32_t get_revents()const;
@@ -69,12 +79,8 @@ namespace ne{
             bool set_writing(const call_back& op);
             
             int socket_state()const;
-
-            void set_loop(eventloop* ptr);
-
+ 
             int fd()const;
-
-            void set_fd(int fd);
             
             bool belonging_to_eventloop()const;
 

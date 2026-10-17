@@ -15,7 +15,8 @@ namespace ne{
     //仍然存在一些问题要改
     class socket{
     private:
-        int fd;
+        int fd = -1;
+
     public:
         //注意fd只能暴露给某些类型，谨慎使用
         int get_fd()const noexcept;
@@ -26,7 +27,7 @@ namespace ne{
 
         ssize_t send_all(const std::string& meg)noexcept;
 
-        ssize_t recv_all(std::string& meg, ssize_t num);
+        ssize_t recv_all(std::string& meg, size_t num, bool& is_closing);
 
         int listen(int max)noexcept;
 
@@ -47,7 +48,11 @@ namespace ne{
         int create_socket(sa_family_t fa, int po);
         
         int get_socket_error(int& res);
+
+        ssize_t recv_all(std::string& meg, size_t num);
+
     public:
+        socket();
 
         socket(sa_family_t fa, int po);
 

@@ -50,6 +50,7 @@ namespace ne{
             bool is_valid()const;
             
         public:
+            acceptor();
 
             acceptor(socket* sock, channel* ch);
 

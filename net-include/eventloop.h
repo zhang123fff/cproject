@@ -21,9 +21,9 @@ namespace ne{
     class channel;
 
     class eventloop{
-        static constexpr size_t DEFUALT_WAIT_SIZE = 10; 
-        //默认毫秒
-        static constexpr int DEFUALT_WAIT_TIME = 100;
+            static constexpr size_t DEFUALT_WAIT_SIZE = 10; 
+            //默认毫秒
+            static constexpr int DEFUALT_WAIT_TIME = 100;
         private:
             size_t epoll_wait_size = DEFUALT_WAIT_SIZE;
             int epoll_wait_time = DEFUALT_WAIT_TIME;

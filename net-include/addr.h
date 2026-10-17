@@ -19,21 +19,26 @@
 namespace ne{
     //仍需要扩展
     class addr{
+            static constexpr size_t IPV4_STRING_MAXLEN = 16;
         private:
             sa_family_t fa_;
             int po_;
             std::string ip_;
             in_port_t port_;
+
         public:
-            const std::string& get_ip()const noexcept;
+            //待实现
+            static addr get_localhost_addr(sa_family_t fa, int po, const std::string& ip, in_port_t port);
 
-            in_port_t get_ports()const noexcept;
+            const std::string& get_ip()const;
 
-            sa_family_t get_fa_()const noexcept;
+            in_port_t get_ports()const;
 
-            int get_po_()const noexcept;
+            sa_family_t get_fa_()const;
 
-            bool get_sockaddr(sockaddr** ad, socklen_t* len)const noexcept;
+            int get_po_()const;
+
+            bool get_sockaddr(sockaddr** ad, socklen_t* len)const;
 
             void set_socktype(int socktype);
 
@@ -42,6 +47,10 @@ namespace ne{
             bool set_ip(const std::string& ip);
 
             void set_port_num(in_port_t port);
+
+            static bool domain_to_ipv4_string(const std::string& dom, std::string& rec);
+
+            bool to_ipv4_string(std::string& rec)const;
             
             //待扩展，转化域名->ipv4,ipv6,udp,tcp,返回sockaddr
             //bool get_sockaddrs_ipv4_tcp(std::vector<std::pair<socklen_t, sockaddr>>& addrs)const;

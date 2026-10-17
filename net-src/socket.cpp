@@ -3,6 +3,10 @@
 
 namespace ne{
 
+    socket::socket(){
+        
+    }
+
     socket::socket(sa_family_t fa, int po){
         fd = ::socket(fa, po, 0);
         //if(fd == -1)throw std::runtime_error(std::string("socket获取失败,errno : ") + strerror(errno));
@@ -34,6 +38,7 @@ namespace ne{
         return fd;
     }
 
+    //
     int socket::bind(const addr& ad)noexcept{
         if(!is_valid()) return -1;
         sockaddr* tmp = nullptr;
@@ -54,9 +59,41 @@ namespace ne{
         free(tmp);
         return res;
     }
-    //
+    
+    //待完善
+    //返回0代表对端关闭
+    //返回-1代表参数错误，fd非法，resize抛出异常，第一次调用::recv()
+    //大于0代表读取了res个字节，但无法知道最后一次调用::recv()返回什么值
+    ssize_t socket::recv_all(std::string& meg, size_t num){
+        if(!is_valid() || num == 0) return -1;
+        try{
+            meg.resize(num);
+        }
+        catch(std::exception& ex){
+            //补上错误输出
+            return -1;
+        }
+        ssize_t res = 0;
+        ssize_t flag = 1;
+        bool fir = false;
+        while(res != num){
+            flag = ::recv(fd, (void*)meg.data() + res, num - res, 0);
+            if(flag <= 0) {
+                if(flag == -1 && errno == EINTR) continue;
+                if(!fir) return flag;
+
+                return res;
+            }            
+            res += flag;
+            fir = true;
+        }
+        return res;
+    }
+
+    //待完善
     //返回值代表实际发送，为meg的长度
     //可能会失败
+    //非阻塞，send失败则返回，不失败则全部发完
     ssize_t socket::send_all(const std::string& meg)noexcept{
         if(!is_valid()) return -1;
         ssize_t res = 0;
@@ -66,6 +103,7 @@ namespace ne{
             flag = ::send(fd, (void*)meg.c_str() + res, meg.size() - res, MSG_NOSIGNAL);
             if(flag <= 0){
                 //补上错误输出
+                if(flag == -1 && errno == EINTR) continue;
                 return res;
             }
             res += flag;
@@ -74,12 +112,17 @@ namespace ne{
         }
         return res;
     }
-    //
-    //可能会失败
-    ssize_t socket::recv_all(std::string& meg, ssize_t num){
+
+    /*废弃函数
+    //！！！is_closing代表对端是否关闭，传进来前一定要初始化
+    //返回-1，表示参数传错（num == 0），fd不合法，meg扩容失败
+    //返回大于等于0的值代表读取了多少字节
+    //返回值大于0的时候具体错误可以看errno，errno代表最后一次执行recv的错误
+    //待完成
+    ssize_t socket::recv_all(std::string& meg, size_t num, bool& is_closing){
         if(!is_valid() || num == 0) return -1;
         try{
-        meg.resize(num);
+            meg.resize(num);
         }
         catch(std::exception& ex){
             //补上错误输出
@@ -90,16 +133,19 @@ namespace ne{
         while(res != num){
             flag = ::recv(fd, (void*)meg.data() + res, num - res, 0);
             if(flag <= 0){
+                if(flag == -1 && errno == EINTR) continue;
                 //要区分-1，0还有errno
                 //补上错误输出
+                if(flag == 0) is_closing = true;
+                meg.resize(res);
                 return res;
             }
             res += flag;
         }
-       
-        
+        meg.resize(res);
         return res;
     }
+    */
 
     int socket::listen(int max)noexcept{
         return ::listen(fd, max);

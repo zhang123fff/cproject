@@ -2,6 +2,31 @@
 
 namespace ne{
 
+    //待完善
+    acceptor::acceptor(){
+        sock_ = new socket(AF_INET, SOCK_STREAM);
+        try{
+            ch_ = new channel(sock_->get_fd());
+        }
+        catch(std::exception& ex){
+            delete sock_;
+            //输出错误信息
+            fprintf(stderr, "acceptor::acceptor() new抛出异常\n");
+            fprintf(stderr, "%s\n", ex.what());
+            throw;
+        }
+
+        std::string tmp;
+        
+        if(!addr::domain_to_ipv4_string("localhost", tmp)) 
+            throw std::runtime_error("acceptor::acceptor() : addr::domain_to_ipv4_string(localhost, tmp)抛出异常");
+        addr ad(tmp, 8080, AF_INET, SOCK_STREAM);
+        if(sock_->bind(ad) == -1) 
+            throw std::runtime_error("acceptor::acceptor() : sock_->bind(ad)抛出异常");
+        //enable不会失败
+        ch_->enable_read_event();
+    }
+
     void acceptor::closing_handle(){
         sock_->close();
         ch_->detach_from_eventloop_and_discard_this_channel();
@@ -67,8 +92,7 @@ namespace ne{
     
     //       可能会抛出异常(bad_alloc，invalid_argument)
     //new失败，sock为空，sock状态错误
-    acceptor::acceptor(socket* sock){
-        
+    acceptor::acceptor(socket* sock){        
         if(!sock) 
             throw std::invalid_argument("acceptor::acceptor(socket* sock) : sock为空");
         if(!sock->is_valid()) 

@@ -3,6 +3,7 @@
 
 
 namespace ne{
+
     const std::string& addr::get_ip()const noexcept{
         return ip_;
     }
@@ -133,7 +134,42 @@ namespace ne{
         port_ = port;
     }
 
+    //失败时rec容量capacity可能变化（概率极小），其余情况都可以完全回滚
+    bool addr::domain_to_ipv4_string(const std::string& dom, std::string& rec){
+        //过滤器
+        addrinfo hint{};
+        hint.ai_family = AF_INET;
+        hint.ai_socktype = SOCK_STREAM;
+        addrinfo* res = nullptr;
+        if(getaddrinfo(dom.c_str(), nullptr, &hint, &res) != 0) return false;
 
+        //获取第一个addrinfo的ip
+        sockaddr_in* tmp = (sockaddr_in*)(res->ai_addr);
+        char ipstr[IPV4_STRING_MAXLEN]{};
+
+        //理论上不会失败，除非参数传错
+        if(!inet_ntop(AF_INET, &tmp->sin_addr, ipstr, IPV4_STRING_MAXLEN)){
+            freeaddrinfo(res);
+            return false;
+        }
+
+        try{
+            rec = ipstr;
+        }
+        catch(std::exception& ex){
+            fprintf(stderr, "addr::domain_to_ipv4_string(const std::string& dom, std::string& rec) : string拷贝赋值抛出异常\n");
+            fprintf(stderr, ex.what());
+            fprintf(stderr, "\n");
+            freeaddrinfo(res);
+            return false;
+        }
+        freeaddrinfo(res);
+        return true;
+    }
+
+    bool addr::to_ipv4_string(std::string& rec)const{
+        return domain_to_ipv4_string(ip_, rec);
+    }
 
 
 

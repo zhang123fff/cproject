@@ -97,7 +97,10 @@ namespace ne{
     }
 
     //返回0或者大于0的数
+    //容量充足且参数正确的情况下不会失败
+    //len长度的字节流全部都可以append
     int buffer::append(const char* msg, size_t len){
+        if(!msg) return -1;
         size_t num = buff_.size();
         try{
             buff_.append(msg, len);
@@ -112,6 +115,9 @@ namespace ne{
         return len;
     }
 
+    //len为0时候返回true
+    //容量充足且参数正确的情况下不会失败
+    //len长度的字节流全部都可以append
     int buffer::append(const std::string& msg, size_t len){
         size_t num = buff_.size();
         try{
@@ -127,10 +133,15 @@ namespace ne{
         return len;
     }
 
+    //len为0时候返回true
+    //容量充足且参数正确的情况下不会失败
+    //字节流全部都可以append
     int buffer::append(const std::string& msg){
         return append(msg, msg.size());
     }
 
+    //容量充足且参数正确的情况下不会失败
+    //字节流全部都可以append
     int buffer::append(const char* msg){
         if(!msg) return -1;
         size_t num = buff_.size();
@@ -145,8 +156,10 @@ namespace ne{
         return buff_.size() - num;
     }
 
+    //容量充足且参数正确的情况下不会失败
+    //len长度的字节流全部都可以assign
     int buffer::assign(const char* msg, size_t len){
-        
+        if(!msg) return -1;
         try{
             buff_.assign(msg, len);
         }
@@ -159,6 +172,8 @@ namespace ne{
         return len;
     }
 
+    //容量充足且参数正确的情况下不会失败
+    //len长度的字节流全部都可以assign
     int buffer::assign(const std::string& msg, size_t len){
         try{
             buff_.assign(msg, 0, len);
@@ -172,6 +187,8 @@ namespace ne{
         return len;
     }
 
+    //容量充足且参数正确的情况下不会失败
+    //字节流全部都可以assign
     int buffer::assign(const char* msg){
         if(!msg) return -1;
         try{
@@ -186,6 +203,8 @@ namespace ne{
         return buff_.size();
     }
 
+    //容量充足且参数正确的情况下不会失败
+    //字节流全部都可以assign
     int buffer::assign(const std::string& msg){
         try{
             buff_.assign(msg);
@@ -265,13 +284,13 @@ namespace ne{
 
     int buffer::get_netinfo_pack_size()const{
         if(size() >= HEAD_SIZE){
-            return get_head_size();
+            return get_pack_size();
         }
         return -1;
     }
 
     uint16_t buffer::get_netinfo_pack_size_no_check()const{
-        return get_head_size();
+        return get_pack_size();
     }
 
     int buffer::get_netinfo_pack(){
@@ -281,7 +300,7 @@ namespace ne{
 
     //!!无任何检查,注意使用
     //网络端到主机端字节序变化
-    uint16_t buffer::get_head_size()const{
+    uint16_t buffer::get_pack_size()const{
        uint16_t res = 0;
        memcpy(&res, get_head_address(), HEAD_SIZE);
        return ntohs(res);
@@ -303,4 +322,110 @@ namespace ne{
     void buffer::move_bytes_overwrite_buff(std::string&& buf){
         buff_ = std::move(buf);
     }
+
+    constexpr uint16_t buffer::get_head_size(){
+        return HEAD_SIZE;
+    }
+
+    //不检查越界
+    void buffer::bytes_remaining_increase(size_t bytes){
+        bytes_remaining += bytes;
+    }
+
+    //不检查越界
+    void buffer::bytes_remaining_decrease(size_t bytes){
+        bytes_remaining  -= bytes;
+    }
+
+    //不检查mem，注意不要越界，不要为nullptr
+    uint16_t buffer::static_get_netinfo_pack_size(const void* mem){
+        uint16_t res = 0;
+        memcpy(&res, mem, HEAD_SIZE);
+        return ntohs(res);
+    }
+
+    int buffer::assign(std::string&& msg){
+        buff_ = std::move(msg);
+        return buff_.size();
+    }
+
+    //谨慎使用，可能会丢失数据
+    bool buffer::resize(size_t siz){
+        try{
+            buff_.resize(siz);
+        }
+        catch(std::exception& ex){
+            //输出错误信息
+            fprintf(stderr, "buffer::resize(size_t siz) : string::resize 抛出异常\n");
+            fprintf(stderr, ex.what());
+            fprintf(stderr, "\n");
+            return false;
+        }
+        return true;
+    }
+
+    //谨慎使用，可能会丢失数据
+    bool buffer::reserve(size_t siz){
+        try{
+            buff_.reserve(siz);
+        }
+        catch(std::exception& ex){
+            //输出错误信息
+            fprintf(stderr, "buffer::reserve(size_t siz) : string::reserve 抛出异常\n");
+            fprintf(stderr, ex.what());
+            fprintf(stderr, "\n");
+            return false;
+        }
+        return true;
+    }
+
+    bool buffer::extend_size(size_t siz){
+        return resize(siz + buff_.size());
+    }
+
+    bool buffer::extend_capacity(size_t siz){
+        return reserve(siz + buff_.capacity());
+    }
+
+    //导出buff_的substr
+    //返回false，先reserve 再 append可以完全回滚
+    bool buffer::append_substr(std::string& str, size_t pos, size_t len){
+        try{
+            //参数检查
+            if(buff_.size() <= pos) return false;
+            if((pos + len) >= buff_.size()) len = buff_.size() - pos;
+            
+            str.reserve(len + str.size());
+
+            //此处可优化，append内部会再检查一次参数
+            str.append(buff_, pos, len);
+        }
+        catch(std::exception& ex){
+            //输出错误信息
+            fprintf(stderr, "buffer::append_substr抛出异常\n");
+            fprintf(stderr, ex.what());
+            fprintf(stderr, "\n");
+            return false;
+        }
+        return true;
+    }
+
+    //导出buff_的substr
+    //返回false，可以完全回滚
+    bool buffer::assign_substr(std::string& str, size_t pos, size_t len){
+        try{
+            str.assign(buff_, pos, len);
+        }
+        catch(std::exception& ex){
+            //输出错误信息
+            fprintf(stderr, "buffer::assign_substr抛出异常\n");
+            fprintf(stderr, ex.what());
+            fprintf(stderr, "\n");
+            return false;
+        }
+        return true;
+    }
+
+    
+
 }

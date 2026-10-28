@@ -18,8 +18,9 @@ namespace tool{
     }
     */
 
-    void threadpool::start(){
-        if(is_running()) return;
+    //返回threadpool的状态
+    bool threadpool::start(){
+        if(is_running()) return true;
         running.store(true, std::memory_order_release);
 
         size_t i = 0;
@@ -30,13 +31,14 @@ namespace tool{
             for(; i < thread_num; i++){
                 ths_.emplace_back(prog_);
             }
+            return true;
         }
         catch(std::exception& ex){
             //输出错误信息
             fprintf(stderr, "vector::reserve(%d)或者queue<thread>::emplace(prog_)抛出异常\n", thread_num);
             fprintf(stderr, "%s\n", ex.what());
             end();
-            return;
+            return false;
         }
         
     }

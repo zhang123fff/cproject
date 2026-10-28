@@ -12,10 +12,12 @@
 #include"addr.h"
 #include<cstring>
 namespace ne{
+
     //仍然存在一些问题要改
+    //recvall,sendall的问题要完善
     class socket{
     private:
-        int fd = -1;
+        int fd_ = -1;
 
     public:
         //注意fd只能暴露给某些类型，谨慎使用
@@ -27,7 +29,8 @@ namespace ne{
 
         ssize_t send_all(const std::string& meg)noexcept;
 
-        ssize_t recv_all(std::string& meg, size_t num, bool& is_closing);
+        //废弃
+        //ssize_t recv_all(std::string& meg, size_t num, bool& is_closing);
 
         int listen(int max)noexcept;
 
@@ -45,6 +48,10 @@ namespace ne{
 
         bool is_valid()const;
 
+        void set_fd(int fd);
+        
+        int is_blocking()const;
+
         int create_socket(sa_family_t fa, int po);
         
         int get_socket_error(int& res);
@@ -54,7 +61,15 @@ namespace ne{
     public:
         socket();
 
+        socket(int fd);
+
         socket(sa_family_t fa, int po);
+
+        socket(sa_family_t fa, int po, const std::string& ip, in_port_t port_num);
+
+        socket(sa_family_t fa, int po, const std::string& ip, in_port_t port_num, bool is_acc);
+
+        socket(const addr& ad, bool is_acc);
 
         socket(const addr& ad);
 

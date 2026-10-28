@@ -178,7 +178,19 @@ channel& channel::operator=(channel&& others)noexcept{
     bool channel::belonging_to_eventloop()const{
         return loop;
     }
-    
+
+    void channel::channel_init(){
+        fd_ = -1;
+        events_ = 0;
+        revents_ = 0;
+
+        loop = nullptr;
+        closing = nullptr;
+        writing = nullptr;
+        reading = nullptr;
+        error = nullptr;
+    }
+
     //ev参数只能包含一个event
     //返回0，代表成功更改或者events_已经被更改
     //返回-1， 代表失败，events_没被更改

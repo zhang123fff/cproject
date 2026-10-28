@@ -50,6 +50,8 @@ namespace ne{
 
             static bool domain_to_ipv4_string(const std::string& dom, std::string& rec);
 
+            bool write_all_info_into_addr(const std::string& ip, in_port_t port, sa_family_t fa, int po);
+
             bool to_ipv4_string(std::string& rec)const;
             
             //待扩展，转化域名->ipv4,ipv6,udp,tcp,返回sockaddr
@@ -58,6 +60,8 @@ namespace ne{
 
 
         public:
+            addr();
+
             addr(const std::string& ip, in_port_t port, sa_family_t fa, int po);
 
             addr(const addr& others);

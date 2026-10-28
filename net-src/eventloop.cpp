@@ -2,6 +2,7 @@
 #include"../net-include/channel.h"
 
 namespace ne{
+
     //参数设置错误，抛出异常会返回false
     //while循环完成则返回true，包括0次循环
     bool eventloop::loop(){
@@ -135,7 +136,15 @@ namespace ne{
 
     }
 
+    bool eventloop::is_valid()const{
+        return ep.is_valid();
+    }
 
+    bool eventloop::legalize_epoll(){
+        if(is_valid()) return true;
+        ep.epoll_create();
+        return ep.is_valid();
+    }
 
 
 

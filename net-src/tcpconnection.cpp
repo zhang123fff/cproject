@@ -9,11 +9,6 @@ namespace ne{
             throw std::invalid_argument("tcpconnection::tcpconnection(socket* sock, channel* ch) : ch或sock为空");
         if(!sock->is_valid() || sock->get_fd() != ch->fd()) 
             throw std::invalid_argument("tcpconnection::tcpconnection(socket* sock, channel* ch) : ch或sock状态错误");
-        
-        set_default_closing();
-        set_default_error();
-        set_default_reading();
-        set_default_writing();
 
         sock_ = sock;
         ch_ = ch;
@@ -30,10 +25,8 @@ namespace ne{
         sock_ = sock;
         ch_ = new channel(sock_->get_fd());
 
-        set_default_closing();
-        set_default_error();
-        set_default_reading();
-        set_default_writing();
+        //不会失败
+        ch_->enable_read_event();
 
     }
 
@@ -145,6 +138,57 @@ namespace ne{
         closing_handle();
     }
 
+    //暂时无内容
+    void tcpconnection::write_result_to_output_buff(std::string &&str){
+
+    }
+
+    void tcpconnection::recv_part_of_content_done(uint16_t siz){
+        input_buff.bytes_remaining_decrease(siz);
+    }
+
+    //包括执行pack_handling，和错误处理
+    //返回true代表正常执行
+    //返回false代表抛出异常
+    bool tcpconnection::execute_pack_handling_with_catch(std::string&& sen, std::string& rec){
+        try{
+            // 抛出异常会导致pack丢失
+            pack_handling(std::move(sen), rec);
+            return true;
+        }
+        catch (std::exception &ex){
+            // 输出错误信息，处理错误
+            fprintf(stderr, "pack_handling抛出异常 ");
+            fprintf(stderr, ex.what());
+            fprintf(stderr, "\n");
+            if (pack_handle_error) pack_handle_error();
+            return false;
+        }
+        catch (...){
+            // 输出错误信息，处理错误
+            fprintf(stderr, "pack_handling抛出非标准异常 \n");
+            if (pack_handle_error) pack_handle_error();
+            return false;
+        }
+        
+    }
+
+    void tcpconnection::recv_pack_content_done(){
+        input_buff.resize(0);
+        input_buff.set_stage(false);
+        input_buff.set_bytes_remaining(input_buff.get_head_size());
+    }
+
+    // 只能用于reading_handle
+    // 对reading_handle里面的某些操作的封装
+    void tcpconnection::recv_pack_head_done(uint16_t& siz){
+        siz = buffer::static_get_netinfo_pack_size(input_buff.c_str());
+        input_buff.resize(0);
+        input_buff.set_stage(true);
+        input_buff.set_pack_bytes(siz);
+        input_buff.set_bytes_remaining(siz);
+    }
+
     void tcpconnection::reading_handle(){
         std::string tmp;
         ssize_t res = 0;
@@ -152,100 +196,87 @@ namespace ne{
         while(true){
             tmp.clear();
             if(!input_buff.get_stage()){
-                res = sock_->recv_all(tmp, input_buff.get_bytes_remaining());
-                if(res <= -1) return;
+                //预留空间，防止之后失败，数据丢失
+                if(!input_buff.reserve(input_buff.get_head_size() + 1))
+                    return;
 
+                res = sock_->recv_all(tmp, input_buff.get_bytes_remaining());
+                if(res <= 0) return;
+
+                input_buff.append(tmp, res);
                 //如果能一次读完就直接获取pack_size
-                if(res == input_buff.get_head_size()){
-                    pack_size = buffer::static_get_netinfo_pack_size(tmp.c_str());
-                    input_buff.set_stage(true);
-                    input_buff.set_bytes_remaining(pack_size);
-                
+                if(res == input_buff.get_bytes_remaining()){
+                    recv_pack_head_done(pack_size);
                     continue;
-                
                 }
                 //如果读不完就先存进input_buff,等凑够headsize字节再解析
                 else{
-                    input_buff.append(tmp);
                     input_buff.bytes_remaining_decrease(res);
-
-                    //r如果够headsize，直接进入下一阶段
-                    if(input_buff.get_bytes_remaining() == 0){
-                        pack_size = buffer::static_get_netinfo_pack_size(input_buff.c_str());
-                        input_buff.clear_buffer();
-                        input_buff.set_stage(true);
-                        input_buff.set_bytes_remaining(pack_size);
-                        continue;
-                    }
                     return;
                 }
             }
             else{
-                res = sock_->recv_all(tmp, input_buff.get_bytes_remaining());
-                if(res == -1) return;
-
-                //提前扩容
-                if(!input_buff.extend_capacity(res)){
-                    //待完善
-                    //失败会丢失数据,后果严重
-                    return;
-                }
-
-                if(res <= input_buff.get_bytes_remaining()){
-                    //不会出错，因为上面已经提前扩容了
-                    input_buff.append(tmp);
-                    input_buff.bytes_remaining_decrease(res);
-
-                    //如果没接收完则return
-                    if(input_buff.get_bytes_remaining() != 0) return;
-                    
-                    //接收完整pack则执行下面的代码
-                    //pack接收完毕,先对buffer初始化，再开始处理
-                    input_buff.move_bytes_out_of_buff(tmp);
-                    input_buff.set_stage(false);
-                    input_buff.set_bytes_remaining(input_buff.get_head_size());
-
-                    //接收上层协议处理pack后的responce
+                // 判断是否0长度的包
+                if(input_buff.get_bytes_remaining() == 0){
+                    recv_pack_content_done();
                     std::string result;
-                    try{
-                        //抛出异常会导致pack丢失
-                        pack_handling(std::move(tmp), result);
-                    }
-                    catch(std::exception& ex){
-                        //输出错误信息，处理错误
-                        fprintf(stderr, "pack_handling抛出异常 ");
-                        fprintf(stderr, ex.what());
-                        fprintf(stderr, "\n");
-                        if(pack_handle_error) pack_handle_error();
-                        continue;
-                    }
-                    catch(...){
-                        //输出错误信息，处理错误
-                        fprintf(stderr, "pack_handling抛出非标准异常 \n");
-                        if(pack_handle_error) pack_handle_error();
-                        continue;
-
-                    }
+                    if(!execute_pack_handling_with_catch(std::string(), result)) continue;
 
                     //将result写回output_buff中
-
-                    //如果失败则responce丢失
-                    if(!append_responce_into_output_buff(result)){
-                        //补上输出错误信息
-                        return;
-                    } 
-                    else {
+                    //如果写回失败则responce丢失    
+                    if(append_responce_into_output_buff(result)){
                         int flag = ch_->enable_write_event();
                         if(flag == -1) {
                             //补上输出错误信息
-                            return;
                         }
-                    }
-                    
-                    
-
+                        
+                    } 
+                    continue;
+                }
+                //提前扩容
+                if(!input_buff.reserve(input_buff.get_pack_bytes() + 1)){
+                    //输出错误信息
+                    return;
                 }
 
+                res = sock_->recv_all(tmp, input_buff.get_bytes_remaining());
+                if(res <= 0) return;
+
+                //不会出错，因为上面已经提前扩容了
+                input_buff.append(tmp, res);
+                if(res < input_buff.get_bytes_remaining()){
+                    recv_part_of_content_done(res);
+                    return;
+                }
+                else if(res == input_buff.get_bytes_remaining()){
+                    //接收完整pack则执行下面的代码
+                    //pack接收完毕,先初始化，再开始处理
+                    input_buff.exchange_buff_memory(tmp);
+                    recv_pack_content_done();
+
+                    //接收上层协议处理pack后的responce
+                    //如果处理失败就抛弃pack
+                    std::string result;
+                    if(!execute_pack_handling_with_catch(std::move(tmp), result)) continue;
+
+                    //将result写回output_buff中
+                    //如果写回失败则responce丢失    
+                    if(append_responce_into_output_buff(result)){
+                        int flag = ch_->enable_write_event();
+                        if(flag == -1) {
+                            //补上输出错误信息
+                        }
+                        
+                    } 
+                    continue;
+
+                }
+                else {
+                    //代码逻辑正确就不会走到这
+                    //该分支用来调试
+                    //补上输出错误信息
+                    exit(-1);
+                }
             }
         }       
     }
@@ -345,6 +376,69 @@ namespace ne{
         //如果是边缘触发，可以重置状态
         ch_->enable_write_event();
     }
+
+    int tcpconnection::enable_socket_write(){
+        return ch_->enable_write_event();
+    }
+
+    int tcpconnection::disable_socket_write(){
+        return ch_->disable_write_event();
+    }
+
+    int tcpconnection::enable_socket_ET(){
+        return ch_->enable_ET_event();
+    }
+
+    int tcpconnection::enable_socket_unblock(){
+        return sock_->set_non_block();
+    }
+
+    int tcpconnection::disable_socket_unblock(){
+        return sock_->set_block();
+    }
+
+    int tcpconnection::disable_socket_ET(){
+        return ch_->disable_ET_event();
+    }
+
+    int tcpconnection::enable_socket_read(){
+        return ch_->enable_read_event();
+    }
+
+    int tcpconnection::disable_socket_read(){
+        return ch_->disable_read_event();
+    }
+
+    bool tcpconnection::legalize_socket(int fd){
+        if(fd == sock_->get_fd()) return false;
+        if(fd == -1 || sock_->is_valid()) return false;
+        sock_->set_fd(fd);
+
+        ch_->channel_init();
+        //ch_的event等用户负责改
+        ch_->set_fd(fd);
+        return true;
+    }
+
+    bool tcpconnection::legalize_socket(socket* sock){
+        if(sock_ == sock || sock_->is_valid()) return false;
+        if(!sock || !sock->is_valid()) return false;  
+
+        delete sock_;
+        sock_ = sock;
+        ch_->channel_init();
+        ch_->set_fd(sock_->get_fd());
+        return true;
+    }
+
+    channel* tcpconnection::get_channel(){
+        return ch_;
+    }
+
+    int tcpconnection::get_fd(){
+        return sock_->get_fd();
+    }
+
 
 
 }

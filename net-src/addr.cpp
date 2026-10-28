@@ -37,6 +37,7 @@ namespace ne{
     //只获取string ip_的sockaddr
    
     //*ad需要用户自己释放
+    //可以转换域名
     bool addr::get_sockaddr(sockaddr** ad, socklen_t* len)const noexcept{
         if(!ad || !len) return false;
         
@@ -64,8 +65,14 @@ namespace ne{
         }
         else return false;
     }
-    
-    addr::addr(const std::string& ip, in_port_t port, sa_family_t fa, int po){
+
+    //设置默认值
+    addr::addr(): fa_(AF_INET), po_(SOCK_STREAM), port_(0){
+
+    }
+
+    addr::addr(const std::string &ip, in_port_t port, sa_family_t fa, int po)
+    {
         ip_ = ip;
         port_ = port;
         fa_ = fa;
@@ -164,6 +171,24 @@ namespace ne{
             return false;
         }
         freeaddrinfo(res);
+        return true;
+    }
+
+    //一般不会出错，除非极端条件内存空间不足
+    bool addr::write_all_info_into_addr(const std::string &ip, in_port_t port, sa_family_t fa, int po){
+        try{
+            ip_ = ip;
+        }
+        catch(std::exception& ex){
+            fprintf(stderr, 
+                "addr::write_all_info_into_addr(const std::string &ip, in_port_t port, sa_family_t fa, int po) : \n");
+            fprintf(stderr, "string赋值抛出异常\n");
+            fprintf(stderr, "%s\n", ex.what());
+            return false;
+        }
+        port_ = port;
+        fa_ = fa;
+        po_ = po;
         return true;
     }
 

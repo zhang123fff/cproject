@@ -34,11 +34,11 @@ namespace ne{
             int event_enable(uint32_t ev);
 
             int event_disable(uint32_t ev);
-         
-            void set_fd(int fd);
 
             void set_loop(eventloop* ptr);
+
         public:
+            void set_fd(int fd);
 
             int add_to_eventloop(eventloop* lo);
             
@@ -83,6 +83,8 @@ namespace ne{
             int fd()const;
             
             bool belonging_to_eventloop()const;
+
+            void channel_init();
 
         public:
             //channel(int fd, eventloop* ptr);

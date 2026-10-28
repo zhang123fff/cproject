@@ -282,6 +282,10 @@ namespace ne{
         return buff_.size();
     }
 
+    size_t buffer::capacity() const{
+        return buff_.capacity();
+    }
+
     int buffer::get_netinfo_pack_size()const{
         if(size() >= HEAD_SIZE){
             return get_pack_size();
@@ -309,6 +313,22 @@ namespace ne{
     //返回const uint16_t*首地址
     const void* buffer::get_head_address()const{
         return (const void*)(data());
+    }
+
+    void buffer::exchange_buff_memory(std::string& str){
+        std::string tmp;
+        tmp = std::move(buff_);
+        buff_ = std::move(str);
+        str = std::move(tmp);
+    }
+
+    void buffer::set_pack_bytes(uint16_t len)
+    {
+        pack_bytes = len;
+    }
+
+    uint16_t buffer::get_pack_bytes() const{
+        return pack_bytes;
     }
 
     //注意使用，无检查

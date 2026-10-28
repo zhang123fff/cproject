@@ -3,6 +3,7 @@
 
 
 namespace ne{
+
     int epoll::epoll_wait(epoll_event* ptr, int maxsize, int timeout)noexcept{
         return ::epoll_wait(epfd, ptr, maxsize, timeout);
     }
@@ -11,11 +12,24 @@ namespace ne{
         return ::epoll_ctl(epfd, op, fd, ptr);
     }
 
+    //通过is_valid判断是否成功
     epoll::epoll(){
         epfd = ::epoll_create1(0);
         //if(epfd == -1) throw std::runtime_error("epfd 创建失败， 失败原因 : " + std::string(strerror(errno)));
     }
-    //推荐用fd（）直接判断是不是-1
+
+    //begining为false时候epfd置-1
+    //反之则创建epfd，但是会失败，置-1
+    epoll::epoll(bool beginning){
+        if(beginning){
+            epfd = ::epoll_create1(0);
+        }
+        else{
+            epfd = -1;
+        }
+    }
+
+    // 推荐用fd（）直接判断是不是-1
     bool epoll::is_valid()const noexcept{
         return epfd != -1;
         
@@ -36,7 +50,7 @@ namespace ne{
     }
 
     epoll::~epoll(){
-        ::close(epfd);
+        if(epfd != -1) ::close(epfd);
     }
 
     int epoll::fd()const noexcept{

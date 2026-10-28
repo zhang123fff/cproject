@@ -18,6 +18,8 @@
 
 namespace ne{
 
+    //刚创建时候，需要手动设置所有回调函数，和接收事件，是否block
+    //不然会抛出异常或者无效listenfd
     class acceptor{
             using call_back = std::function<void()>;
         private:
@@ -31,7 +33,9 @@ namespace ne{
             call_back closing;
             call_back error;
 
-            
+            //上层传下来的,必须要有的
+            //不能抛出异常
+            std::function<bool(socket*, channel*)> newconnection;
         private:
             static bool call_back_copy(call_back& func1, const call_back& func2);
 
@@ -39,18 +43,58 @@ namespace ne{
 
             void error_handle();
 
-           
+            //非阻塞专用
+            void reading_handle();
+
+            // 阻塞专用
+            void block_reading_handle();
+
         public:
+            int enable_listen_socket_ET();
+
+            int enable_listen_socket_unblock();
+
+            int disable_listen_socket_unblock();
+
+            int disable_listen_socket_ET();
+
+            int enable_listen_socket_read();
+
+            int disable_listen_socket_read();
+
+            bool set_newconnection(const std::function<bool(socket*, channel*)>& op);
+
             bool set_reading(const call_back& op);
 
             bool set_closing(const call_back& op);
 
             bool set_error(const call_back& op);
 
+            bool set_default_block_reading();
+
+            bool set_default_reading();
+
+            bool set_default_closing();
+
+            bool set_default_error();
+
             bool is_valid()const;
+
+            bool legalize_socket(int fd);
+
+            bool legalize_socket(socket* sock);
+
+            //!!!注意要谨慎使用，监听channel所有权属于acceptor
+            channel* get_listen_channel();
+
+            //!!!注意要谨慎使用，监听fd所有权属于acceptor
+            int get_listen_fd();
+
+
             
         public:
-            acceptor();
+            //待完成
+            //acceptor();
 
             acceptor(socket* sock, channel* ch);
 

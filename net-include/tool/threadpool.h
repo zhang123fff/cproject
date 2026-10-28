@@ -52,7 +52,7 @@ namespace tool{
 
             size_t get_task_num()const;
 
-            void start();
+            bool start();
 
             void end();
 

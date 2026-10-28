@@ -23,6 +23,8 @@ namespace ne{
             std::string buff_;
             bool stage = false;
             size_t bytes_remaining = HEAD_SIZE;
+            //只用来记录信息
+            uint16_t pack_bytes = 0;
 
         private:
             uint16_t get_pack_size()const;
@@ -30,6 +32,14 @@ namespace ne{
             const void* get_head_address()const;
 
         public:
+            //交换buff里面的string
+            //其他信息不变
+            void exchange_buff_memory(std::string& str);
+
+            void set_pack_bytes(uint16_t len);
+
+            uint16_t get_pack_bytes()const;
+
             void set_stage(bool st);
 
             void set_bytes_remaining(size_t bytes);
@@ -115,6 +125,8 @@ namespace ne{
             bool empty()const;
 
             size_t size()const;
+
+            size_t capacity()const;
 
         public:
             buffer();

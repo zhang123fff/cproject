@@ -18,6 +18,7 @@ namespace ne{
         private:
             //只有两种状态，无效的-1，其他情况都默认是有效的
             int epfd;
+            
         public:
             int epoll_wait(epoll_event* ptr, int maxsize, int timeout)noexcept;
 
@@ -33,6 +34,8 @@ namespace ne{
 
         public:
             epoll();
+
+            epoll(bool beginning);
 
             epoll(const epoll& others) = delete;
 

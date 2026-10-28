@@ -18,6 +18,8 @@
 
 namespace ne{
 
+    //刚创建时候，需要手动设置所有回调函数，和接收事件，是否block
+    //不然会抛出异常或者无效fd
     class tcpconnection{
             using call_back = std::function<void()>;
             using pack_protocol = std::function<void(std::string&&, std::string&)>;
@@ -44,6 +46,21 @@ namespace ne{
             //不能抛异常
             call_back pack_handle_error;
         private:
+            //目前只能用于reading_handle
+            void write_result_to_output_buff(std::string&& str);
+
+            //目前只能用于reading_handle
+            void recv_part_of_content_done(uint16_t siz);
+
+            //目前只能用于reading_handle
+            bool execute_pack_handling_with_catch(std::string&& sen, std::string& rec);
+
+            //目前只能用于reading_handle
+            void recv_pack_content_done();
+
+            //目前只能用于reading_handle
+            void recv_pack_head_done(uint16_t& siz);
+
             static bool call_back_copy(call_back& func1, const call_back& func2);
 
             void closing_handle();
@@ -55,6 +72,22 @@ namespace ne{
             void writing_handle();
 
         public:
+            int enable_socket_write();
+
+            int disable_socket_write();
+
+            int enable_socket_ET();
+
+            int enable_socket_unblock();
+
+            int disable_socket_unblock();
+
+            int disable_socket_ET();
+
+            int enable_socket_read();
+
+            int disable_socket_read();
+
             void set_default_reading();
 
             void set_default_writing();
@@ -81,6 +114,17 @@ namespace ne{
             bool overwrite_responce_into_output_buff(const std::string& data);
             //自动计算packsize
             bool append_responce_into_output_buff(const std::string& data);
+
+            bool legalize_socket(int fd);
+
+            bool legalize_socket(socket* sock);
+
+            //!!!注意要谨慎使用，channel所有权属于acceptor
+            channel* get_channel();
+
+            //!!!注意要谨慎使用，fd所有权属于acceptor
+            int get_fd();
+
 
         public:
             tcpconnection(socket* sock, channel* ch);

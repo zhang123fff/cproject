@@ -30,6 +30,7 @@ namespace ne{
             std::atomic<bool> looping = false;
             epoll ep;
             std::map<int, channel*> map;
+
         public:
             bool loop();
 
@@ -52,6 +53,11 @@ namespace ne{
             void set_epoll_wait_time(int time);
 
             int get_epoll_wait_time()const;
+
+            bool is_valid()const;
+
+            bool legalize_epoll();
+
         public:
             eventloop(epoll&& ep);
 

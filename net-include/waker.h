@@ -17,7 +17,7 @@
 #include<iostream>
 #include<vector>
 #include<unistd.h>
-#include<channel.h>
+#include"channel.h"
 #include <sys/eventfd.h>
 
 namespace ne{
@@ -42,7 +42,7 @@ namespace ne{
             static bool call_back_copy(call_back& func1, const call_back& func2);
 
         public:
-            bool legalize_wakeupfd();
+            bool legalize_waker();
 
             bool is_valid()const;
 
@@ -61,6 +61,10 @@ namespace ne{
             void close();
 
             void set_fd();
+
+            int get_fd()const;
+
+            channel* get_channel();
 
         public:
             waker();

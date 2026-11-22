@@ -12,17 +12,26 @@ namespace ne{
         return ::epoll_ctl(epfd, op, fd, ptr);
     }
 
+    bool epoll::legalize_epoll(){
+        if(is_valid()) return true;
+        epfd = epoll_create();
+        if(epfd == -1) return false;
+        else return true;
+    }
+
     //通过is_valid判断是否成功
     epoll::epoll(){
         epfd = ::epoll_create1(0);
         //if(epfd == -1) throw std::runtime_error("epfd 创建失败， 失败原因 : " + std::string(strerror(errno)));
     }
 
-    //begining为false时候epfd置-1
-    //反之则创建epfd，但是会失败，置-1
-    epoll::epoll(bool beginning){
-        if(beginning){
+    //run为false时候epfd置-1
+    //反之则创建epfd，失败抛出异常
+    epoll::epoll(bool run){
+        if(run){
             epfd = ::epoll_create1(0);
+            if(epfd == -1)
+                throw std::runtime_error("epoll::epoll(bool run) : epfd==-1");
         }
         else{
             epfd = -1;

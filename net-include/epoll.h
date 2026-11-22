@@ -24,6 +24,8 @@ namespace ne{
 
             int epoll_ctl(int op, int fd, epoll_event* ptr)noexcept;
 
+            bool legalize_epoll();
+
             int fd()const noexcept;
 
             bool is_valid()const noexcept;
@@ -35,7 +37,7 @@ namespace ne{
         public:
             epoll();
 
-            epoll(bool beginning);
+            epoll(bool run);
 
             epoll(const epoll& others) = delete;
 

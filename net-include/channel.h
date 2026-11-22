@@ -35,9 +35,9 @@ namespace ne{
 
             int event_disable(uint32_t ev);
 
+        public:
             void set_loop(eventloop* ptr);
 
-        public:
             void set_fd(int fd);
 
             int add_to_eventloop(eventloop* lo);

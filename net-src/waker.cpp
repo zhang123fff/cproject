@@ -39,9 +39,6 @@ namespace ne{
     waker::waker(){
         ch_ = std::make_unique<channel>();
         wakeupfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-        if(wakeupfd == -1) 
-            throw std::runtime_error("waker::waker() : eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)创造失败");
-        
         ch_->set_fd(wakeupfd);
         //ch_->enable_read_event();
 
@@ -114,8 +111,18 @@ namespace ne{
         //暂无实现
     }
 
+    //注意外部不能释放，所有权属于waker
+    int waker::get_fd() const{
+        return wakeupfd;
+    }
+
+    //注意外部不能释放，所有权属于waker
+    channel *waker::get_channel(){
+        return ch_.get();
+    }
+
     //返回当前合法状态
-    bool waker::legalize_wakeupfd(){
+    bool waker::legalize_waker(){
         if(is_valid()) return true;
         wakeupfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         if(wakeupfd == -1) return false;
@@ -133,7 +140,7 @@ namespace ne{
     }
 
     int waker::disable_wakeupfd_read(){
-         return ch_->disable_read_event();
+        return ch_->disable_read_event();
     }
 
 
